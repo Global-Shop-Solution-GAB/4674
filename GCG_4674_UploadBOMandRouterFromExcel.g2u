@@ -1,0 +1,972 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("BOM Comparison")
+Gui.Form..Size(23775,8640)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Sizeable(False)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.frame1.Create(Frame)
+Gui.Form.frame1.Size(11445,7560)
+Gui.Form.frame1.Position(300,240)
+Gui.Form.GsGridControlImport.Create(GsGridControl)
+Gui.Form.GsGridControlImport.Size(10950,4785)
+Gui.Form.GsGridControlImport.Position(285,1785)
+Gui.Form.GsGridControlImport.Parent("frame1")
+Gui.Form.cmdUpload.Create(Button)
+Gui.Form.cmdUpload.Size(1545,555)
+Gui.Form.cmdUpload.Position(285,6720)
+Gui.Form.cmdUpload.Caption("Upload")
+Gui.Form.cmdUpload.FontStyle(True,False,False,False,False)
+Gui.Form.cmdUpload.Parent("frame1")
+Gui.Form.cmdUpload.Event(Click,cmdUpload_Click)
+Gui.Form.cmdCreate.Create(Button)
+Gui.Form.cmdCreate.Size(1545,555)
+Gui.Form.cmdCreate.Position(9660,6720)
+Gui.Form.cmdCreate.Caption("Create Parts")
+Gui.Form.cmdCreate.FontStyle(True,False,False,False,False)
+Gui.Form.cmdCreate.Event(Click,cmdCreate_Click)
+Gui.Form.cmdCreate.Parent("frame1")
+Gui.Form.cmdCreate.Enabled(False)
+Gui.Form.lblPN1.Create(Label,"Parent Number",True,1305,255,0,255,1035,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblPN1.Parent("frame1")
+Gui.Form.lblRev1.Create(Label,"Rev",True,630,255,0,2580,1035,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblRev1.Parent("frame1")
+Gui.Form.lblDesc1.Create(Label,"Description",True,1935,255,0,3420,1035,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblDesc1.Parent("frame1")
+Gui.Form.txtPN1.Create(TextBox,"",True,2160,300,0,270,1275,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtPN1.Parent("frame1")
+Gui.Form.txtRev1.Create(TextBox,"",True,660,300,0,2565,1275,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtRev1.Parent("frame1")
+Gui.Form.txtDesc1.Create(TextBox,"",True,2970,300,0,3420,1275,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtDesc1.Parent("frame1")
+Gui.Form.lblAero.Create(Label,"Ranger Die",True,2790,525,0,270,270,True,0,"Arial",23,-2147483633,0)
+Gui.Form.lblAero.Parent("frame1")
+Gui.Form.frame2.Create(Frame)
+Gui.Form.frame2.Size(11445,7560)
+Gui.Form.frame2.Position(11910,255)
+Gui.Form.GsGridControlMatch.Create(GsGridControl)
+Gui.Form.GsGridControlMatch.Size(10950,4785)
+Gui.Form.GsGridControlMatch.Position(285,1785)
+Gui.Form.GsGridControlMatch.Parent("frame2")
+Gui.Form.lblKey.Create(Label,"Key:",True,735,255,0,510,7005,True,0,"Arial",15,-2147483633,0)
+Gui.Form.lblKey.Parent("frame2")
+Gui.Form.lblyellow.Create(Label,"Yellow - Part Needs to be Created in Global Shop",True,3915,255,0,1305,7050,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblyellow.Parent("frame2")
+Gui.Form.txtDesc2.Create(TextBox,"",True,2970,300,0,3510,1275,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtDesc2.Parent("frame2")
+Gui.Form.lblDesc2.Create(Label,"Description",True,1935,255,0,3480,1035,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblDesc2.Parent("frame2")
+Gui.Form.txtRev2.Create(TextBox,"",True,660,300,0,2610,1275,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtRev2.Parent("frame2")
+Gui.Form.lblRev2.Create(Label,"Rev",True,630,255,0,2625,1035,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblRev2.Parent("frame2")
+Gui.Form.txtPN2.Create(TextBox,"",True,2160,300,0,315,1275,False,0,"Arial",8,-2147483643,1)
+Gui.Form.txtPN2.Parent("frame2")
+Gui.Form.lblPN2.Create(Label,"Parent Number",True,1305,255,0,300,1035,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblPN2.Parent("frame2")
+Gui.Form.lblGSS.Create(Label,"Global Shop Solutions",True,5055,525,0,285,270,True,0,"Arial",23,-2147483633,0)
+Gui.Form.lblGSS.Parent("frame2")
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global..BulkDeclareString(sBOM, sFile)
+V.Global.sError.Declare(String)
+V.Global.sErrorRouter.Declare(String)
+Program.External.Include.Library("6021.lib")
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'8/1/2017. Dawn Hughes. This program allows the user to select an excel file to upload a BOM.
+
+'ARC 4674 modification
+'Author: Arturo Almaguer
+'Date: 11/9/22
+'Customer: Ranger Die, quote number 13776
+'ARC 4674 modification to map new fields and create routers after the BOM creation.
+'This script is launched off a custom menu item under BOM > Transactions > BOM and Router Upload from Spreadsheet [4674].
+
+F.Intrinsic.Control.Try
+
+	V.Local.sRet.Declare(String)
+	V.Local.sTemp.Declare(String)
+	V.Local.iUbound.Declare(Long)
+
+	F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+	F.Intrinsic.UI.ShowOpenFileDialog("", "xlsx|*xlsx|xls|*xls", "", V.Local.sRet)
+	Function.Intrinsic.Control.If(V.Local.sRet, <>, "***CANCEL***")
+		
+		'get BOM name from file
+		V.Local.sTemp.Set(V.Local.sRet)
+		F.Intrinsic.String.Split(V.Local.sTemp, "\", V.Local.sTemp)
+		V.Local.iUbound.Set(V.Local.sTemp.UBound)
+		F.Intrinsic.String.Split(V.Local.sTemp(V.Local.iUbound), ".", V.Local.sTemp)
+		V.Global.sBOM.Set(V.Local.sTemp(0))
+		Function.Automation.MSExcel.ReadSpreadsheet(V.Local.sRet, V.Local.sRet)
+		F.Intrinsic.UI.InvokeWaitDialog("Gathering Data...", "Wait")
+		Function.Intrinsic.UI.ChangeWaitStatus("Gathering Data...", 20)
+		Function.Intrinsic.Control.CallSub(new_bom, "sRet",V.Local.sRet)
+		Function.Intrinsic.UI.ChangeWaitStatus("Gathering Data...",50)
+		Function.Intrinsic.Control.CallSub(check_parts)
+		Function.Intrinsic.UI.ChangeWaitStatus("Gathering Data...", 80)
+		Function.Intrinsic.Control.CallSub(check_exist)
+		Function.Intrinsic.UI.ChangeWaitStatus("Gathering Data...", 90)
+		Function.Intrinsic.Control.CallSub(grid_logic)
+	
+	Function.Intrinsic.Control.Else
+	
+		F.Intrinsic.UI.Msgbox("No file selected")
+		Function.Intrinsic.Control.End
+	
+	Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.NEW_BOM.Start
+F.Intrinsic.Control.Try
+
+	V.Local.sTemp.Declare(String)
+	V.Local.sFile.Declare(String)
+	V.Local.sBOMParent.Declare(String)
+	V.Local.sParentFile.Declare(String)
+	V.Local.sPart.Declare(String)
+	V.Local.sQTY.Declare(String)
+	V.Local.sFilter.Declare(String)
+	V.Local.iC.Declare(Long)
+	V.Local.iS.Declare(Long)
+	
+	'Modification on 11/11/22 by Arturo Almaguer. 
+	'Getting rid of backward slash character which might appear for some ERP Codes
+	V.Local.sString.Declare(String)
+	V.Local.sString.Set(V.Args.sRet)
+	F.Intrinsic.String.Replace(V.Local.sString, "\", "", V.Local.sString)
+	'''''''''''''''''''''''''''''''''''''''''''''
+	
+	'write to datatable
+	F.Data.DataTable.CreateFromString("NEW", V.Local.sString, "PartNumber*!*QTY*!*UOM*!*Description*!*Source*!*Product_Line*!*GSS_RM_PN*!*GSS_RM_DESC*!*D1*!*GSS_RM_QTY*!*GSS_RM_UOM*!*GSS_RMPL*!*GSS_RM_SOURCE*!*D2*!*D3*!*D4*!*ERPCODE", "String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String*!*String", "*!*", "$!$", True)
+	'delete first row
+	F.Data.DataTable.DeleteRow("NEW", 0)
+	''''''''add BOM name to 0 row- this came from the name of the file
+	F.Data.DataTable.AddRow("NEW","PartNumber",V.Global.sBOM, "QTY","1","UOM","EA","Description", "", "Source", "F", "Product_Line", "WD")
+	Function.Data.DataTable.MoveRow("NEW", V.DataTable.NEW.RowCount--, 0)
+	
+	'Modification on 11/11/22 by Arturo Almaguer
+	'Getting rid of extra columns
+	F.Data.DataTable.RemoveColumn("NEW", "D1")
+	F.Data.DataTable.RemoveColumn("NEW", "D2")
+	F.Data.DataTable.RemoveColumn("NEW", "D3")
+	F.Data.DataTable.RemoveColumn("NEW", "D4")
+	''''''''''''''''''''''''''''''''''''''''''''
+	
+	F.Intrinsic.Control.For(V.Local.iC, V.DataTable.NEW.RowCount--,  0, -1)
+		F.Intrinsic.Control.If(V.DataTable.NEW(V.Local.iC).PartNumber!FieldValTrim, =, "")
+			F.Data.DataTable.DeleteRow("NEW", V.Local.iC)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iC)
+	
+	'create new table
+	F.Data.DataTable.Create("BOM", TRUE)
+	F.Data.DataTable.AddColumn("BOM", "Level", "String")
+	F.Data.DataTable.AddColumn("BOM", "PartNumber", "String")
+	F.Data.DataTable.AddColumn("BOM", "QTY", "String")
+	F.Data.DataTable.AddColumn("BOM", "UOM", "String")
+	F.Data.DataTable.AddColumn("BOM", "Description", "String")
+	F.Data.DataTable.AddColumn("BOM", "Source", "String")
+	F.Data.DataTable.AddColumn("BOM", "ProductLine", "String")
+	
+	'set text box for Parent 
+	GUI.Form.txtPN1.Text(V.DataTable.NEW(0).PartNumber!FieldValTrim)
+	GUI.Form.txtDesc1.Text(V.DataTable.NEW(0).Description!FieldValTrim)
+	
+	'loop through table to create a new table with the children under the parent and create upload file as well to avoid having to loop through again later> new table = "BOM"
+	' Parent(20), Sequence(4), Count(16), Part(20), UM(2), Description(30), Rev(3), Category(1), Source(1)
+	
+	'set the Bom Parent
+	V.Local.sBOMParent.Set(V.DataTable.NEW(0).PartNumber!FieldValTrim)
+	
+	'select to distinct
+	F.Data.DataView.Create("NEW", "NEW_V")
+	Function.Data.DataView.ToDataTableDistinct("NEW", "NEW_V", "PART","PartNumber", TRUE)
+	
+	F.Intrinsic.Control.For(V.Local.iC, 0, V.DataTable.NEW.RowCount--, 1)
+		'parent. because the way the excel is written- this will always be the parent of the first set of data, sParentFile is for the 0000 record if it has a child
+		V.Local.sTemp.Set(V.Local.sBOMParent)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).PartNumber!FieldValTrim)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+		'sequence
+		V.Local.sTemp.Set(V.Local.iS)
+		F.Intrinsic.String.LPad(V.Local.sTemp, "0", 4, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, "0000", V.Local.sParentFile)
+		'count(QTY)
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).QTY!FieldValTrim)
+		F.Intrinsic.String.Split(V.Local.sTemp, ".", V.Local.sTemp)
+		Function.Intrinsic.Control.If(V.Local.sTemp.UBound, =, 1)
+			'then we had decimal
+			F.Intrinsic.String.RPad(V.Local.sTemp(1), "0", 4, V.Local.sTemp(1))
+			F.Intrinsic.String.Build("{0}.{1}", V.Local.sTemp(0), V.Local.sTemp(1), V.Local.sQTY)
+			F.Intrinsic.String.LPad(V.Local.sTemp(0), "0", 11, V.Local.sTemp(0))
+			F.Intrinsic.String.Build("{0}{1}.{2}", V.Local.sFile, V.Local.sTemp(0), V.Local.sTemp(1),V.Local.sFile)
+			F.Intrinsic.String.Build("{0}{1}.{2}", V.Local.sParentFile, V.Local.sTemp(0), V.Local.sTemp(1),V.Local.sParentFile)
+		Function.Intrinsic.Control.Else
+			'no decimal
+			F.Intrinsic.String.LPad(V.Local.sTemp(0), "0", 11, V.Local.sTemp(0))
+			F.Intrinsic.String.Build("{0}.0000", V.Local.sTemp(0), V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}.0000", V.DataTable.NEW(V.Local.iC).QTY!FieldValTrim, V.Local.sQTY)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp,  V.Local.sFile)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp,  V.Local.sParentFile)
+		Function.Intrinsic.Control.EndIf
+		'Part
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).PartNumber!FieldValTrim)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+		'UOM
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).UOM!FieldValTrim)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 2, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+		'Description
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).Description!FieldValTrim)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 30, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+		'REV
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).PartNumber!FieldValTrim)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+		F.Intrinsic.String.Right(V.Local.sTemp, 3, V.Local.sTemp)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 3, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+		'Category
+		V.Local.sTemp.Set("")
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 1, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+		'Source
+		V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).Source!FieldValTrim)
+		F.Intrinsic.String.RPad(V.Local.sTemp, " ", 1, V.Local.sTemp)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sParentFile, V.Local.sTemp, V.Local.sParentFile)
+	
+		'add this to the new table - make part UCASE
+		V.Local.sPart.Set(V.DataTable.NEW(V.Local.iC).PartNumber!FieldValTrim)
+		F.Intrinsic.String.UCase(V.Local.sPart, V.Local.sPart)
+		F.Data.DataTable.AddRow("BOM","Level"," 1","PartNumber",V.Local.sPart, "QTY",V.Local.sQTY,"UOM",V.DataTable.NEW(V.Local.iC).UOM!FieldValTrim,"Description", V.DataTable.NEW(V.Local.iC).Description!FieldValTrim,"Source", V.DataTable.NEW(V.Local.iC).Source!FieldValTrim,"ProductLine",V.DataTable.NEW(V.Local.iC).Product_Line!FieldValTrim)
+	
+		'now check if this parent has child
+		Function.Intrinsic.Control.If(V.DataTable.NEW(V.Local.iC).GSS_RM_PN!FieldValTrim, <>, "")
+	
+			'add the parentFile to the file
+			F.Intrinsic.String.Build("{0}{1}{2}", V.Local.sFile, V.Ambient.NewLine, V.Local.sParentFile, V.Local.sFile)
+			'reset parentFile
+			V.Local.sParentFile.Set("")
+	
+			'then we have a child. increase iS and add to the table
+			F.Intrinsic.Math.Add(V.Local.iS, 1, V.Local.iS)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Ambient.NewLine, V.Local.sFile)
+			'parent
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).PartNumber!FieldValTrim)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'sequence
+			V.Local.sTemp.Set(V.Local.iS)
+			F.Intrinsic.String.LPad(V.Local.sTemp, "0", 4, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'count(QTY)
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_QTY!FieldValTrim)
+			F.Intrinsic.String.Split(V.Local.sTemp, ".", V.Local.sTemp)
+			Function.Intrinsic.Control.If(V.Local.sTemp.UBound, =, 1)
+				'then we had decimal
+				F.Intrinsic.String.RPad(V.Local.sTemp(1), "0", 4, V.Local.sTemp(1))
+				F.Intrinsic.String.Build("{0}.{1}", V.Local.sTemp(0), V.Local.sTemp(1), V.Local.sQTY)
+				F.Intrinsic.String.LPad(V.Local.sTemp(0), "0", 11, V.Local.sTemp(0))
+				F.Intrinsic.String.Build("{0}{1}.{2}", V.Local.sFile, V.Local.sTemp(0), V.Local.sTemp(1),V.Local.sFile)
+			Function.Intrinsic.Control.Else
+				'no decimal
+				F.Intrinsic.String.LPad(V.Local.sTemp(0), "0", 11, V.Local.sTemp(0))
+				F.Intrinsic.String.Build("{0}.0000", V.Local.sTemp(0), V.Local.sTemp)
+				F.Intrinsic.String.Build("{0}.0000", V.DataTable.NEW(V.Local.iC).GSS_RM_QTY!FieldValTrim, V.Local.sQTY)
+				F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp,  V.Local.sFile)
+			Function.Intrinsic.Control.EndIf
+			'Part
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_PN!FieldValTrim)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'UOM
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_UOM!FieldValTrim)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 2, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'Description
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_Desc!FieldValTrim)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 30, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'REV
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_PN!FieldValTrim)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 20, V.Local.sTemp)
+			F.Intrinsic.String.Right(V.Local.sTemp, 3, V.Local.sTemp)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 3, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'Category
+			V.Local.sTemp.Set("")
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 1, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+			'Source
+			V.Local.sTemp.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_Source!FieldValTrim)
+			F.Intrinsic.String.RPad(V.Local.sTemp, " ", 1, V.Local.sTemp)
+			F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Local.sTemp, V.Local.sFile)
+	
+			'add this to the new table, as level 2 - make part UCASE
+			V.Local.sPart.Set(V.DataTable.NEW(V.Local.iC).GSS_RM_PN!FieldValTrim)
+			F.Intrinsic.String.UCase(V.Local.sPart, V.Local.sPart)
+			F.Data.DataTable.AddRow("BOM","Level","  2","PartNumber",V.Local.sPart, "QTY",V.Local.sQTY,"UOM",V.DataTable.NEW(V.Local.iC).GSS_RM_UOM!FieldValTrim,"Description", V.DataTable.NEW(V.Local.iC).GSS_RM_Desc!FieldValTrim,"Source", V.DataTable.NEW(V.Local.iC).GSS_RM_Source!FieldValTrim,"ProductLine",V.DataTable.NEW(V.Local.iC).GSS_RMPL!FieldValTrim)
+		Function.Intrinsic.Control.Else
+			'reset parentFile
+			V.Local.sParentFile.Set("")
+		Function.Intrinsic.Control.EndIf
+		F.Intrinsic.String.Build("{0}{1}", V.Local.sFile, V.Ambient.NewLine, V.Local.sFile)
+		'increase iS
+		F.Intrinsic.Math.Add(V.Local.iS, 1, V.Local.iS)
+	
+	F.Intrinsic.Control.Next(V.Local.iC)
+	'set first row level to a 0
+	
+	F.Data.DataTable.SetValue("BOM", 0, "Level", "0")
+	V.Global.sFile.Set(V.Local.sFile)
+	
+	'check the BOM to make sure all fields are there
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "[PartNumber] = ''", "")
+	Function.Intrinsic.Control.If(V.DataView.BOM!BOM_V.RowCount, >, 0)
+		F.Intrinsic.UI.Msgbox("Missing Part Numbers in Excel")
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("BOM", "BOM_V")
+	
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "[QTY] = '.0000'", "")
+	Function.Intrinsic.Control.If(V.DataView.BOM!BOM_V.RowCount, >, 0)
+		F.Intrinsic.UI.Msgbox("Missing Quantities in Excel")
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("BOM", "BOM_V")
+	
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "[UOM] = ''", "")
+	Function.Intrinsic.Control.If(V.DataView.BOM!BOM_V.RowCount, >, 0)
+		F.Intrinsic.UI.Msgbox("Missing Unit of Measure in Excel")
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("BOM", "BOM_V")
+	
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "[Description] = ''", "")
+	Function.Intrinsic.Control.If(V.DataView.BOM!BOM_V.RowCount, >, 1)
+		F.Intrinsic.UI.Msgbox("Missing Description in Excel")
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("BOM", "BOM_V")
+	
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "[Source] = ''", "")
+	Function.Intrinsic.Control.If(V.DataView.BOM!BOM_V.RowCount, >, 0)
+		F.Intrinsic.UI.Msgbox("Missing Source in Excel")
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("BOM", "BOM_V")
+	
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "[ProductLine] = ''", "")
+	Function.Intrinsic.Control.If(V.DataView.BOM!BOM_V.RowCount, >, 0)
+		F.Intrinsic.UI.Msgbox("Missing Product Line in Excel")
+		Function.Intrinsic.Control.CallSub(form_unload)
+	Function.Intrinsic.Control.EndIf
+	F.Data.DataView.Close("BOM", "BOM_V")
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.NEW_BOM.End
+
+Program.Sub.CHECK_PARTS.Start
+F.Intrinsic.Control.Try
+
+	'use the datatable BOM to add expression columns and check for non-existing parts
+	'add column Part and fill from dictionary. where the Part = '' we need to color yellow
+	F.Data.DataTable.AddColumn("BOM", "Part", "String")
+	F.Data.Dictionary.CreateFromSQL("dict", "con", "Select rTrim(PART) as PartNumber, rTrim(PART) From Inventory_Mstr")
+	F.Data.Dictionary.SetDefaultReturn("dict","")
+	F.Data.DataTable.FillFromDictionary( "BOM", "dict","PartNumber", "Part")
+	F.Data.Dictionary.Close("dict")
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.CHECK_PARTS.End
+
+Program.Sub.CHECK_EXIST.Start
+F.Intrinsic.Control.Try
+
+	V.Local.sSQL.Declare(String)
+	V.Local.sParent.Declare(String)
+	V.Local.sFilePath.Declare(String)
+	V.Local.sParams.Declare(String)
+	V.Local.sRet.Declare(String)
+	V.Local.sFile.Declare(String)
+	V.Local.sTemp.Declare(string)
+	V.Local.sLevel.Declare(String)
+	V.Local.sQTY.Declare(String)
+	V.Local.bExists.Declare(Boolean)
+	V.Local.iC.Declare(Long)
+	V.Local.iUP.Declare(Long)
+	V.Local.fChild.Declare(Float)
+	V.Local.fQTY.Declare(Float)
+	'check if this BOM exists
+	'get the parent from the first line in the data table
+	
+	V.Local.sParent.Set(V.DataTable.NEW(0).PartNumber!FieldValStringPSQLFriendly)
+	
+	'check if BOM already exists in GSS
+	F.Intrinsic.String.Build("Select PARENT From V_BOM_MSTR Where PARENT = '{0}'", V.Local.sParent, V.Local.ssql)
+	F.ODBC.Connection!con.ExecuteAndReturn(V.Local.ssql, V.Local.sParent)
+	F.Intrinsic.Control.If(V.Local.sParent, <>, "")
+		'then we explode this BOM 
+		'build the file to explode
+		V.Local.sParent.Set(V.DataTable.NEW(0).PartNumber!FieldValStringPSQLFriendly)
+		F.Intrinsic.String.Build("{0}\BOM{1}",V.System.Temp,V.Caller.Terminal,V.Local.sFilePath)
+		F.Intrinsic.String.Build("0{0}{1}{0}{2}",V.Ambient.Tab,V.Local.sParent.Trim,v.Local.sFilePath,V.Local.sParams)
+		F.Intrinsic.File.String2File(V.Local.sFilePath,V.Local.sParams)
+		'fire the explode BOM callwrapper
+		F.Global.General.CallWrapperSync(410000,V.Local.sFilePath)
+		F.Intrinsic.File.Exists(V.Local.sFilePath,V.Local.bExists)
+		'check if the file exists
+		F.Intrinsic.Control.If(V.Local.bExists,=,False)
+			F.Intrinsic.Control.ExitSub
+		Function.Intrinsic.Control.EndIf
+		'create datatable
+		F.Data.DataTable.Create("OLD", TRUE)
+		F.Data.DataTable.AddColumn("OLD", "Level", "String")
+		F.Data.DataTable.AddColumn("OLD", "PartNumber", "String")
+		F.Data.DataTable.AddColumn("OLD", "QTY", "String")
+		F.Data.DataTable.AddColumn("OLD", "UOM", "String")
+		F.Data.DataTable.AddColumn("OLD", "Description", "String")
+		F.Data.DataTable.AddColumn("OLD", "Source", "String")
+		F.Data.DataTable.AddColumn("OLD", "ProductLine", "String")
+	
+		'send the file to a string array
+		F.Intrinsic.File.FiletoStringArray(V.Local.sFilePath,V.Ambient.Tab,V.Local.sTemp)
+		'load it to a string
+		F.Intrinsic.File.File2String(V.Local.sTemp(3),V.Local.sRet)
+		f.Intrinsic.String.Replace(V.Local.sRet,"*","",V.Local.sRet)
+		V.Local.sTemp.RedimPreserve(0,0)
+		'split the return
+		F.Intrinsic.String.Split(V.Local.sRet,v.Ambient.NewLine,V.Local.sRet)
+		F.Intrinsic.Math.Sub(V.Local.sRet.UBound, 1, V.Local.iUP)
+		F.Intrinsic.Control.For(V.Local.iC, 7, V.Local.iUP, 1)
+		'Line|~|Seq|~|Part Number|~|Description|~|Category|~|Source|~|Quantity|~|On Hand|~|On Order|~|Required|~|Net|~|Router Net|~|Parent|~|Lead (Days)|~|Lead Date|~|Part Number|~|
+			F.Intrinsic.String.Split(v.Local.sRet(V.Local.iC), "|~|", v.Local.sTemp)
+			'UOM and PL will be added later
+	
+			Function.Intrinsic.Control.If(V.Local.sTemp(1), =, "1")
+				F.Intrinsic.String.Build(" {0}", V.Local.sTemp(1), V.Local.sLevel)
+				F.Data.DataTable.AddRow("OLD", "Level", V.Local.sLevel, "PartNumber", V.Local.sTemp(2).Trim, "QTY", V.Local.sTemp(6), "Description", V.Local.sTemp(3), "Source", V.Local.sTemp(5))
+				V.Local.fQTY.Set(V.Local.sTemp(6))
+			Function.Intrinsic.Control.Else
+				F.Intrinsic.String.Build("  {0}", V.Local.sTemp(1), V.Local.sLevel)
+				V.Local.fChild.Set(V.Local.sTemp(6))
+				Function.Intrinsic.Control.If(V.Local.fQTY, >, 1)
+					F.Intrinsic.Math.Div(V.Local.fChild, V.Local.fQTY, V.Local.fQTY)
+					'F.Intrinsic.String.Build("{0}.0000",  V.Local.iQTY, V.Local.sQTY)
+					F.Intrinsic.String.Format(V.Local.fQTY, "###########0.0000", V.Local.sQTY)
+				Function.Intrinsic.Control.Else
+					V.Local.fQTY.Set(V.Local.sTemp(6))
+					'F.Intrinsic.String.Build("{0}.0000",  V.Local.iQTY, V.Local.sQTY)
+					F.Intrinsic.String.Format(V.Local.fQTY, "###########0.0000", V.Local.sQTY)
+				Function.Intrinsic.Control.EndIf
+				F.Data.DataTable.AddRow("OLD", "Level", V.Local.sLevel, "PartNumber", V.Local.sTemp(2).Trim, "QTY", V.Local.sQTY, "Description", V.Local.sTemp(3), "Source", V.Local.sTemp(5))
+	
+			Function.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iC)
+		'get the UOM and the PL
+		F.Data.Dictionary.CreateFromSQL("dict", "con", "Select rTrim(Part) as PartNumber,UM_Inventory as UOM From  INVENTORY_MSTR")
+		F.Data.Dictionary.SetDefaultReturn("dict", "")
+		F.Data.DataTable.FillFromDictionary("OLD", "dict", "PartNumber", "UOM")
+		F.Data.Dictionary.Close("dict")
+		F.Data.Dictionary.CreateFromSQL("dict", "con", "Select rTrim(Part) as PartNumber, Product_Line As ProductLine From  INVENTORY_MSTR")
+		F.Data.Dictionary.SetDefaultReturn("dict", "")
+		F.Data.DataTable.FillFromDictionary("OLD", "dict", "PartNumber", "ProductLine")
+		F.Data.Dictionary.Close("dict")
+		'set the forst row to 0 for the parent
+		F.Data.DataTable.SetValue("OLD", 0, "Level", "0")
+		'set the text boxes
+		GUI.Form.txtPN2.Text(V.DataTable.OLD(0).PartNumber!FieldValTrim)
+		'GUI.Form.txtRev2.Text(V.DataTable.OLD(0).PartNumber!FieldValTrim)
+		GUI.Form.txtDesc2.Text(V.DataTable.OLD(0).Description!FieldValTrim)
+	
+	F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.CHECK_EXIST.End
+
+Program.Sub.GRID_LOGIC.Start
+F.Intrinsic.Control.Try
+
+	V.Local.iC.Declare(Long)
+	V.Local.iRow.Declare(Long)
+	
+	'GsGridControlImport
+	Gui.Form.GsGridControlImport.AddGridViewFromDataTable("GRID1","BOM")
+	
+	F.Intrinsic.Control.For(V.Local.iC, 0, V.DataTable.BOM.RowCount--, 1)
+		Function.Intrinsic.Control.If(V.DataTable.BOM(V.Local.iC).Part!FieldValTrim, =, "")
+			GUI.Form.GsGridControlImport.SetCellAppearance("GRID1",1,V.Local.iC,"Backcolor","Yellow")
+			GUI.Form.cmdCreate.Enabled(True)
+			GUI.Form.cmdUpload.Enabled(FALSE)
+		Function.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iC)
+	
+	'check to see if this table exists
+	Function.Intrinsic.Control.If(V.DataTable.OLD.Exists, =, TRUE)
+		Gui.Form.GsGridControlMatch.AddGridViewFromDataTable("GRID2","OLD")
+		'add the red color to the ones that are different
+		F.Intrinsic.Control.For(V.Local.iRow, 0, V.DataTable.BOM.RowCount--, 1)
+			Function.Intrinsic.Control.If(V.DataTable.BOM(V.Local.iRow).Part!FieldValTrim, <>, V.DataTable.OLD(V.Local.iRow).PartNumber!FieldValTrim, "OR",V.DataTable.BOM(V.Local.iRow).QTY!FieldValTrim, <>, V.DataTable.OLD(V.Local.iRow).QTY!FieldValTrim)
+				GUI.Form.GsGridControlImport.SetRowAppearance("GRID1",V.Local.iROW,"Backcolor","RED")
+			Function.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.Next(V.Local.iRow)
+	
+		GUI.Form.GsGridControlMatch.mainview("GRID2")
+		Gui.Form.GsGridControlMatch.SetColumnProperty("GRID2", "PartNumber", "Caption", "Part Number")
+	Function.Intrinsic.Control.EndIf
+	
+	'order and rename "GRID1"
+	Gui.Form.GsGridControlImport.SetColumnProperty("GRID1", "Part", "Visible", False)
+	Gui.Form.GsGridControlImport.SetColumnProperty("GRID1", "PartNumber", "VisibleIndex", 1)
+	Gui.Form.GsGridControlImport.SetColumnProperty("GRID1", "PartNumber", "Caption", "Part Number")
+	
+	GUI.Form.GsGridControlImport.mainview("GRID1")	
+	F.Intrinsic.UI.CloseWaitDialog
+
+	GUI.Form..Show
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.GRID_LOGIC.End
+
+Program.Sub.cmdCREATE_CLICK.Start
+F.Intrinsic.Control.Try
+
+	V.Local.iC.Declare(Long)
+	V.Local.sPart.Declare(String)
+	V.Local.sDesc.Declare(String)
+	
+	'Function.Global.Inventory.AddPartToBatch(part, unit of measure, description, location, product line, source code, alt description 1, alt description 2, price) 
+	'Function.Global.Inventory.PostPartBatch
+	'select to view where Part = ""
+	F.Data.DataView.Create("BOM", "BOM_V", 22, "Part = ''", "")
+	F.Intrinsic.UI.InvokeWaitDialog("Creating Part(s).......")
+	F.Intrinsic.Control.For(V.Local.iC, 0, V.DataView.BOM!BOM_V.RowCount--, 1)
+		V.Local.sPart.Set(V.DataView.BOM!BOM_V(V.Local.iC).PartNumber!FieldValStringPSQLFriendly)
+		F.Intrinsic.String.Left(V.Local.sPart, 20, V.Local.sPart)
+		V.Local.sDesc.Set(V.DataView.BOM!BOM_V(V.Local.iC).Description!FieldValStringPSQLFriendly)
+		F.Intrinsic.String.Left(V.Local.sDesc, 30, V.Local.sDesc)
+		Function.Global.Inventory.AddPartToBatch(V.Local.sPart, V.DataView.BOM!BOM_V(V.Local.iC).UOM!FieldValStringPSQLFriendly, V.Local.sDesc, "", V.DataView.BOM!BOM_V(V.Local.iC).ProductLine!FieldValStringPSQLFriendly, V.DataView.BOM!BOM_V(V.Local.iC).Source!FieldValStringPSQLFriendly, "", "", "0.00", "NOMAINT")
+	F.Intrinsic.Control.Next(V.Local.iC)
+	Function.Global.Inventory.PostPartBatch
+	F.Intrinsic.UI.CloseWaitDialog
+	'close view
+	F.Data.DataView.Close("BOM", "BOM_V")
+	F.Data.DataTable.RemoveColumn("BOM", "Part")
+	GUI.Form.cmdCreate.Enabled(False)
+	GUI.Form.cmdUpload.Enabled(True)
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdCREATE_CLICK.End
+
+Program.Sub.cmdUPLOAD_CLICK.Start
+F.Intrinsic.Control.Try
+
+	V.Local.sPath.Declare(String)
+	GUI.Form..Visible(false)
+	
+	F.Intrinsic.UI.InvokeWaitDialog("Uploading New Bill of Material...", "Wait")	
+	Function.Intrinsic.UI.ChangeWaitStatus("Uploading New Bill of Material...", 10)
+	
+	'Filepath
+	F.Intrinsic.String.Build("{0}\{1}",V.Caller.FilesDir,"bomhdr.txt",V.Local.sPath)
+	'Save File
+	F.Intrinsic.File.String2File(V.Local.sPath,V.Global.sFile)
+	Function.Intrinsic.UI.ChangeWaitStatus("Uploading New Bill of Material...", 25)
+	
+	'upload the BOM file
+	Function.Global.General.CallWrapperSync(50,"XSOLIDWK")
+	Function.Intrinsic.UI.ChangeWaitStatus("Uploading Routers...", 50)
+	
+	'Modification on 11/11/22 by Arturo Almaguer. 
+	'Calling sub to upload new routers
+	F.Intrinsic.Control.CallSub("UploadRouters")
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdUPLOAD_CLICK.End
+
+Program.Sub.Form_Unload.Start
+'Closes the connection if it is open
+f.Intrinsic.Control.If(v.ODBC.con.exists,=,"1") 	
+    f.ODBC.Connection!con.Close
+f.Intrinsic.Control.EndIf
+
+'Ending program
+F.Intrinsic.Control.End
+Program.Sub.Form_Unload.End
+
+Program.Sub.UploadRouters.Start
+'This subroutine uploads routers from recently created BOMs
+
+F.Intrinsic.Control.Try
+
+	v.Local.sSQL.Declare(String)
+	V.Local.iRouterCounter.Declare(Long)
+	v.Local.sParent.Declare(String)
+	v.Local.sTemplateRouter.Declare(String)
+	V.Local.iCounter2.Declare(Long)
+	V.Local.iRouterSeqsCounter.Declare(Long)
+	v.Local.sHeaderDesc.Declare(String)
+	V.Local.sRuntime.Declare(String)
+	v.Local.sHeaderQTY.Declare(String)
+	v.Local.sHeaderPL.Declare(String)
+	v.Local.sHeaderDate.Declare(String)
+	V.Local.sMessage.Declare(String)
+	V.Local.sUploadFile.Declare(String)
+	
+	'Creating dictionary to get part number description in dtNew
+	F.Data.Dictionary.CreateFromDataTable("dictDesc","NEW","GSS_RM_PN","GSS_RM_DESC")
+	
+	'Getting list of routers to upload
+	F.Data.DataView.Create("NEW", "dvNew", 22, "[ERPCODE] <> ''", "")
+	F.Intrinsic.String.Build("[{0}] routers found to upload..", V.DataView.NEW!dvNew.RowCount, V.Local.sMessage)
+	F.Intrinsic.Control.CallSub("Logging", "Message", V.Local.sMessage)
+	
+	'Looping through dt to create a new router for each record
+	F.Intrinsic.Control.For(V.Local.iRouterCounter, 0, V.DataTable.NEW.RowCount--, 1)
+	
+		v.Local.sTemplateRouter.Set(V.DataTable.NEW(V.Local.iRouterCounter).ERPCODE!FieldValTrim)
+
+		'If ERP Code is different than blank, then it means there is a code and a router must be created for the part. 
+		F.Intrinsic.Control.If(v.Local.sTemplateRouter,<>,"")
+			
+			'Setting variables
+			v.Local.sHeaderDesc.Set(V.DataTable.NEW(V.Local.iRouterCounter).Description!FieldValTrim)
+			F.Intrinsic.String.Format(V.DataTable.NEW(V.Local.iRouterCounter).QTY!FieldVal,"#,###,##0.0000",V.Local.sHeaderQTY)
+			v.Local.sHeaderPL.Set(V.DataTable.NEW(V.Local.iRouterCounter).Product_Line!FieldValTrim)
+			F.Intrinsic.String.Format(V.Ambient.Date, "MMDDYY", V.Local.sHeaderDate)
+		
+			'Getting router lines from the template router
+			F.Intrinsic.String.Build("select * from V_ROUTER_LINE where ROUTER = '{0}' order by LINE_ROUTER;", v.Local.sTemplateRouter, V.Local.sSQL)
+			F.Data.DataTable.CreateFromSQL("dtTemplateRouter", "Con", V.Local.sSQL, True)
+			F.Data.DataTable.AddColumn("dtTemplateRouter", "ROUTER_LINE_1", "String")
+			
+			'Getting the material lines from the BOM 
+			v.Local.sParent.Set(V.DataTable.NEW(V.Local.iRouterCounter).PartNumber!FieldValTrim)
+			F.Intrinsic.String.Build("select RTRIM(PART) PART, QUANTITY, UM_INVENTORY from V_BOM_MSTR where PARENT = '{0}' and SEQUENCE_BOM <> '0000';", v.Local.sParent, V.Local.sSQL)
+			F.Data.DataTable.CreateFromSQL("dtBOMMaterial", "Con", V.Local.sSQL, True)
+			F.Data.DataTable.AddColumn("dtBOMMaterial", "DESCRIPTION", "String")
+			F.Data.DataTable.FillFromDictionary("dtBOMMaterial", "dictDesc", "PART", "DESCRIPTION")
+			
+			'Looping through all BOM material lines to add them to dtTemplateRouter
+			F.Intrinsic.Control.For(V.Local.iCounter2, 0, V.DataTable.dtBOMMaterial.RowCount--, 1)
+				
+				F.Intrinsic.String.Format(V.DataTable.dtBOMMaterial(V.Local.iCounter2).QUANTITY!FieldVal,"#,###,##0.0000",V.Local.sRuntime)
+				f.Data.DataTable.AddRow("dtTemplateRouter", "PART_WC_OUTSIDE", V.DataTable.dtBOMMaterial(V.Local.iCounter2).PART!FieldValTrim, "LMO", "M", "DESC_RT_LINE", V.DataTable.dtBOMMaterial(V.Local.iCounter2).DESCRIPTION!FieldValTrim, "UM_INVENTORY", V.DataTable.dtBOMMaterial(V.Local.iCounter2).UM_INVENTORY!FieldValTrim, "RUN_TIME", V.Local.sRuntime)
+				F.Data.DataTable.MoveRow("dtTemplateRouter", V.DataTable.dtTemplateRouter.RowCount--, V.Local.iCounter2)
+			
+			F.Intrinsic.Control.Next(V.Local.iCounter2)
+			
+			'Renumbering router sequences
+			F.Data.DataTable.SetSeries("dtTemplateRouter", "ROUTER_LINE_1", 100, 100)
+			F.Data.DataTable.AddExpressionColumn("dtTemplateRouter", "ROUTER_LINE", "String", "SUBSTRING('000000'+ROUTER_LINE_1, 1 + LEN(ROUTER_LINE_1),6)")
+			
+			'ERP Code routers only have L or O sequences.
+			'Looping through dtTemplateRouter to add new router's sequences to callwrapper 6021 dt
+			F.Intrinsic.Control.For(V.Local.iRouterSeqsCounter, 0, V.DataTable.dtTemplateRouter.RowCount--, 1)
+				
+				F.Intrinsic.Control.SelectCase(V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).LMO!FieldValTrim)
+				
+				F.Intrinsic.Control.Case("M")
+					
+					'Don't need to validate part's existence because previous BOM upload process already created all non-inventory parts in GSS.
+					F.Data.DataTable.AddRow("6021", "Seq", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).ROUTER_LINE!FieldValTrim, "LineType", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).LMO!FieldValTrim, "PartStepDesc", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).DESC_RT_LINE!FieldValTrim, "PartNum", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).PART_WC_OUTSIDE!FieldValTrim, "RunTimeMatlQty", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).RUN_TIME!FieldVal, "UM", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).UM_INVENTORY!FieldValTrim)
+
+				F.Intrinsic.Control.Case("L")
+					
+					'Don't need to validate WC since all labor sequences are retrieved from an existing GSS router, which means all WCs are valid.
+					'Missing RouterYieldPerc field compared to ARC 5807
+					F.Data.DataTable.AddRow("6021", "Seq", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).ROUTER_LINE!FieldValTrim, "LineType", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).LMO!FieldValTrim, "WC", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).PART_WC_OUTSIDE!FieldValTrim, "PartStepDesc", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).DESC_RT_LINE!FieldValTrim, "SetupQty", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).SET_UP!FieldVal, "RunTimeMatlQty", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).RUN_TIME!FieldVal, "OperationCodeVend", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).OPERATION!FieldValTrim, "RateUC", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).RATE!FieldVal, "Freq", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).FREQUENCY!FieldVal, "Overlap", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).OVERLAP!FieldVal, "WCFactor", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).WC_FACTOR!FieldVal, "CrewSize", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).CREW_SIZE!FieldVal, "LeadTime", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).LEAD_TIME!FieldVal, "SortCode", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).SORT_CODE!FieldValTrim)
+					
+				F.Intrinsic.Control.Case("O")
+					
+					'Don't need to validate vendor since all outside sequences are retrieved from an existing GSS router, which means all of them are valid.
+					'Missing MinFlag, MinOutside, RouterYieldPerc, MinRunQty compared to ARC 5807
+					F.Data.DataTable.AddRow("6021", "Seq", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).ROUTER_LINE!FieldValTrim, "LineType", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).LMO!FieldValTrim, "PartStepDesc", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).DESC_RT_LINE!FieldValTrim, "SetupQty", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).SET_UP!FieldVal, "RunTimeMatlQty", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).RUN_TIME!FieldVal, "OperationCodeVend", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).OPERATION!FieldValTrim, "RateUC", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).RATE!FieldVal, "Freq", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).FREQUENCY!FieldVal, "LeadTime", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).LEAD_TIME!FieldValFloat, "SortCode", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).SORT_CODE!FieldValTrim, "UM", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).UM_INVENTORY!FieldValTrim, "PartNum", V.DataTable.dtTemplateRouter(V.Local.iRouterSeqsCounter).PART_WC_OUTSIDE!FieldValTrim) 
+			
+				F.Intrinsic.Control.EndSelect
+			
+			F.Intrinsic.Control.Next(V.Local.iRouterSeqsCounter)
+			
+			'Setting Router Header fields
+			F.Data.DataTable.SetValue("6021", -1, "RouterNum", v.Local.sParent, "RouterDesc", V.Local.sHeaderDesc, "Qty1", V.Local.sHeaderQTY, "PL", V.Local.sHeaderPL, "OriginalDate", V.Local.sHeaderDate)
+			
+			'Uploading Router and logging
+			F.Intrinsic.String.Build("Running router upload callwrapper 6021 for router [{0}]..", V.Local.sParent, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub("Logging", "Message", V.Local.sMessage)
+			F.Intrinsic.Control.CallSub(6021Sync)
+			F.Intrinsic.String.Build("Router [{0}] upload completed by [{1}]..", V.Local.sParent, V.Caller.User, V.Local.sMessage)
+			F.Intrinsic.Control.CallSub("Logging", "Message", V.Local.sMessage)
+		
+			'Creating backup for upload file
+			F.Intrinsic.String.Build("{0}\ROUTERHD.txt", V.Caller.FilesDir, V.Local.sUploadFile)
+			F.Intrinsic.Control.CallSub("BackUpFile", "File", V.Local.sUploadFile, "Router", V.Local.sParent)
+			
+			'Validating router for sucess
+			F.Intrinsic.String.Build("select RTRIM(ROUTER) from V_ROUTER_HEADER where ROUTER like '%{0}'", V.Local.sParent, V.Local.sSQL)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL, V.Local.sSQL)
+			F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+				
+				'failure
+				F.Intrinsic.String.Build("Router [{0}] validation failed.", V.Local.sParent, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub("Logging", "Message", V.Local.sMessage)
+			
+			F.Intrinsic.Control.Else
+				
+				'success
+				F.Intrinsic.String.Build("Router [{0}] validation successful.", V.Local.sParent, V.Local.sMessage)
+				F.Intrinsic.Control.CallSub("Logging", "Message", V.Local.sMessage)
+			
+			F.Intrinsic.Control.EndIf
+			
+			'When that upload finishes, the router lines will have to be updated to identify that the material lines on the router were created from a BOM.
+			F.Intrinsic.String.Build("update ROUTER_LINE set BUILT_FROM_BOM = 'Y' where ROUTER = '{0}' and LMO = 'M';", v.Local.sParent, V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+			
+			'Updating 'Router Complete' option for the recently created router.
+			F.Intrinsic.String.Build("update ROUTER_SUPP_HDR set COMPLETE = '1' where RTR_NUM = '{0}' and TYPE = 'H';", V.Local.sParent, V.Local.sSQL)
+			F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+						
+			'Closing temporary dts
+			F.Data.DataTable.Close("dtBOMMaterial")
+			F.Data.DataTable.Close("dtTemplateRouter")
+			
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iRouterCounter)
+	
+	'Closing dts/dvs/dicts
+	f.Data.Dictionary.Close("dictDesc")
+	F.Data.DataView.Close("NEW", "dvNew")
+	
+	'Displaying final msgbox
+	F.Intrinsic.UI.CloseWaitDialog
+	F.Intrinsic.UI.Msgbox("Upload Complete")
+	F.Intrinsic.Control.CallSub("Logging", "Message", "Router upload run completed.")
+	
+F.Intrinsic.Control.Catch
+	
+	V.Global.sErrorRouter.Set(V.Local.sParent)
+	F.Intrinsic.Control.CallSub(CatchError)
+
+F.Intrinsic.Control.EndTry
+Program.Sub.UploadRouters.End
+
+Program.Sub.CatchError.Start
+'To display the error
+F.Intrinsic.String.Build("Subroutine: {1}{0}Error Occurred {2} with description {3}", V.Ambient.Newline, V.Ambient.SubroutineCalledFrom, V.Ambient.ErrorNumber, V.Ambient.ErrorDescription, V.Global.sError) 
+F.Intrinsic.UI.Msgbox(V.Global.sError)
+
+'Adding Router # if program failed in UploadRouters sub
+F.Intrinsic.Control.If(v.Local.sErrorRouter,<>,"")
+	F.Intrinsic.String.Build("Router [{0}]. {1}", V.Args.Router, V.Global.sError, V.Global.sError) 
+F.Intrinsic.Control.EndIf
+
+'Logging error and unload
+F.Intrinsic.Control.CallSub("ErrorLogging", "Message", V.Global.sError)
+F.Intrinsic.Control.CallSub("Form_Unload")
+Program.Sub.CatchError.End
+
+Program.Sub.Logging.Start
+'This subroutine creates a log file to store the part numbers that were updated. 
+'pass Message
+
+F.Intrinsic.Control.Try
+
+	V.Local.sPath.Declare(String)
+	V.Local.sFile.Declare(String)
+	V.Local.bExists.Declare(Boolean)
+	V.Local.bExists2.Declare(Boolean)
+	V.Local.sMessage.Declare(String)
+	V.Local.sContents.Declare(String)
+	
+	V.Local.sMessage.Set(V.Args.Message)
+	
+	'Checking if log folder exists
+	F.Intrinsic.String.Build("{0}\CUSTOM\4674\LOG", V.Caller.GlobalDir, V.Local.sPath)
+	F.Intrinsic.File.DirExists(V.Local.sPath, V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists.Not)
+		
+		F.Intrinsic.File.CreateDir(V.Local.sPath)
+	
+	F.Intrinsic.Control.EndIf
+	
+	'Checking if log file exists
+	F.Intrinsic.String.Build("{0}\4674 Log.txt", V.Local.sPath, V.Local.sFile)
+	
+	F.Intrinsic.File.Exists(V.Local.sFile, V.Local.bExists2)
+	F.Intrinsic.Control.If(V.Local.bExists2.Not)
+		
+		F.Intrinsic.String.Build("{0} {1}: Log Start", V.Ambient.Date.FormatYYYY-MM-DD, V.Ambient.Time.Format!HH:NN:SS, V.Local.sContents)
+		F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+		
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("{0} {1}:{2}{3}", V.Ambient.Date.FormatYYYY-MM-DD, V.Ambient.Time.Format!HH:NN:SS, V.Ambient.Tab, V.Local.sMessage, V.Local.sContents)
+	F.Intrinsic.File.Append2FileNewLine(V.Local.sFile, V.Local.sContents)
+	
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.Logging.End
+
+Program.Sub.BackUpFile.Start
+'pass FILE, ROUTER
+
+F.Intrinsic.Control.Try
+	
+	V.Local.sPath.Declare(String)
+	V.Local.sName.Declare(String)
+	V.Local.bExists.Declare(Boolean)
+	
+	'Checking if folder exists
+	F.Intrinsic.String.Build("{0}\CUSTOM\4674\Backups", V.Caller.GlobalDir, V.Local.sPath)
+	F.Intrinsic.File.DirExists(V.Local.sPath, V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists.Not)
+		
+		F.Intrinsic.File.CreateDir(V.Local.sPath)
+	
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.File.GetFileNameFromFQN(V.Args.File, V.Local.sName)
+	F.Intrinsic.Control.CallSub("AppendFileName", "File", V.Local.sName, "Router", V.Args.Router, "Append", V.Ambient.Now.FormatYYYY-MM-DD)
+	
+	F.Intrinsic.String.Build("{0}\{1}", V.Local.sPath, V.Args.New_Name, V.Local.sPath)
+	
+	F.Intrinsic.File.Exists(V.Args.File, V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists)
+		F.Intrinsic.File.CopyFile(V.Args.File, V.Local.sPath)
+	F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.BackUpFile.End
+
+Program.Sub.AppendFileName.Start
+'pass FILE, ROUTER, APPEND
+'returns NEW_NAME
+
+F.Intrinsic.Control.Try
+	
+	V.Local.sExtension.Declare(String)
+	V.Local.sFile.Declare(String)
+	V.Local.sNewName.Declare(String)
+	
+	F.Intrinsic.File.GetExtensionComponent(V.Args.File, V.Local.sExtension)
+	F.Intrinsic.String.Build(".{0}", V.Local.sExtension, V.Local.sExtension)
+	F.Intrinsic.String.Replace(V.Args.File, V.Local.sExtension, "", V.Local.sNewName)
+	F.Intrinsic.String.Build("{0}_{1}_{2}{3}", V.Local.sNewName, V.Args.Router, V.Args.Append, V.Local.sExtension, V.Local.sNewName)
+	
+	F.Intrinsic.Variable.AddRV("NEW_NAME", V.Local.sNewName)
+
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.AppendFileName.End
+
+Program.Sub.ErrorLogging.Start
+'This subroutine creates a log file to store the part numbers that were updated. 
+'pass Message
+
+F.Intrinsic.Control.Try
+
+	V.Local.sPath.Declare(String)
+	V.Local.sFile.Declare(String)
+	V.Local.bExists.Declare(Boolean)
+	V.Local.bExists2.Declare(Boolean)
+	V.Local.sMessage.Declare(String)
+	V.Local.sContents.Declare(String)
+	
+	V.Local.sMessage.Set(V.Args.Message)
+	
+	'Checking if log folder exists
+	F.Intrinsic.String.Build("{0}\CUSTOM\4674\LOG", V.Caller.GlobalDir, V.Local.sPath)
+	F.Intrinsic.File.DirExists(V.Local.sPath, V.Local.bExists)
+	F.Intrinsic.Control.If(V.Local.bExists.Not)
+		
+		F.Intrinsic.File.CreateDir(V.Local.sPath)
+	
+	F.Intrinsic.Control.EndIf
+	
+	'Checking if log file exists
+	F.Intrinsic.String.Build("{0}\4674 Error Log.txt", V.Local.sPath, V.Local.sFile)
+	
+	F.Intrinsic.File.Exists(V.Local.sFile, V.Local.bExists2)
+	F.Intrinsic.Control.If(V.Local.bExists2.Not)
+		
+		F.Intrinsic.String.Build("{0} {1}: Log Start", V.Ambient.Date.FormatYYYY-MM-DD, V.Ambient.Time.Format!HH:NN:SS, V.Local.sContents)
+		F.Intrinsic.File.String2File(V.Local.sFile, V.Local.sContents)
+		
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("{0} {1}:{2}{3}", V.Ambient.Date.FormatYYYY-MM-DD, V.Ambient.Time.Format!HH:NN:SS, V.Ambient.Tab, V.Local.sMessage, V.Local.sContents)
+	F.Intrinsic.File.Append2FileNewLine(V.Local.sFile, V.Local.sContents)
+	
+F.Intrinsic.Control.Catch
+
+	F.Intrinsic.Control.CallSub(CatchError)
+	
+F.Intrinsic.Control.EndTry
+Program.Sub.ErrorLogging.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+${$3$}$0$}$$}$0$}$-1$}$$}$12:00:00 AM$}$This will be a custom GAB script that will run from a custom Menu Item under Bill of Material -> File -> Custom Cobalt BOM Import.  The user will navigate to the xml file that needs to be loaded into Global Shop.  Once the xml is parsed there will be a search in Global Shop to see if a BOM already exists for that Part Number.  If one already exists a compare screen will display showing the differences between the two.  If one does not exist then the screen will display the BOM as it will be uploaded into Global Shop.  Any parts that are listed in the BOM that are not Inventory Parts will be highlighted in Yellow.  If there are any parts not in inventory the user will have the option to click the create Parts button to generate those parts in Global Shop.  If the BOM exists in Global shop then any differences on the new import will be highlighted in Red.  After the Parts have been created then the Upload button will upload and override any previous BOM for that part.
+${$5$}$2.0.0.0$}$2
+${$6$}$apadilla$}$20221130170045039$}$Lag9STqBJOmNXSbd5+msRcBWPGz0aFqSmhrQDKqKcnWXPoUDfNGjwk8i7BLN9cj8I4DxlxgeQEABjIkwSoA2Aw==
+Program.Sub.Comments.End
